@@ -50,7 +50,7 @@ cd ..
 wget https://github.com/asterisk/asterisk/releases/download/20.5.0/asterisk-20.5.0.tar.gz
 tar xzf asterisk-20.5.0.tar.gz && rm asterisk-20.5.0.tar.gz
 
-patch -p2 --directory=asterisk-20.5.0 <asterisk.patch
+patch -p2 --forward --directory=asterisk-20.5.0 <asterisk.patch
 ```
 
 ### Building asterisk:
