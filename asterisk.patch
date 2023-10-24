@@ -1,0 +1,187 @@
+diff --recursive --unified --no-dereference --new-file a/asterisk-20.5.0/Makefile b/asterisk-20.5.0/Makefile
+--- a/asterisk-20.5.0/Makefile	2023-10-18 19:10:25.000000000 +0200
++++ b/asterisk-20.5.0/Makefile	2023-10-24 17:47:03.636293869 +0200
+@@ -283,9 +283,8 @@
+ MOD_SUBDIRS_MENUSELECT_TREE:=$(MOD_SUBDIRS:%=%-menuselect-tree)
+ 
+ ifneq ($(findstring darwin,$(OSARCH)),)
+-  _ASTCFLAGS+=-D__Darwin__ -mmacosx-version-min=10.6
+-  _SOLINK=-mmacosx-version-min=10.6 -Wl,-undefined,dynamic_lookup
+-  _SOLINK+=/usr/lib/bundle1.o
++  _ASTCFLAGS+=-D__Darwin__
++  _SOLINK=-Wl,-undefined,dynamic_lookup
+   SOLINK=-bundle $(_SOLINK)
+   DYLINK=-Wl,-dylib $(_SOLINK)
+   _ASTLDFLAGS+=-L/usr/local/lib
+diff --recursive --unified --no-dereference --new-file a/asterisk-20.5.0/Makefile.rules b/asterisk-20.5.0/Makefile.rules
+--- a/asterisk-20.5.0/Makefile.rules	2023-10-18 19:10:25.000000000 +0200
++++ b/asterisk-20.5.0/Makefile.rules	2023-10-24 17:47:03.636686410 +0200
+@@ -71,17 +71,6 @@
+   endif
+ endif
+ 
+-ifeq ($(CC),gcc)
+-    # gcc version 8.2.1 and above must have partial-inlining disabled in order
+-    # to avoid a documented bug. Sort to make the lowest version number come
+-    # first. If it's the specified version then the current gcc version is equal
+-    # to or greater, so add the custom optimization rule.
+-    gcc_versions=$(shell printf "%s\n" $$(gcc -dumpversion) 8.2.1 | sort -n)
+-    ifeq ($(firstword $(gcc_versions)),8.2.1)
+-        OPTIMIZE+=-fno-partial-inlining
+-	endif
+-endif
+-
+ ifeq ($(findstring DONT_OPTIMIZE,$(MENUSELECT_CFLAGS))$(AST_CODE_COVERAGE),no)
+     _ASTCFLAGS+=$(OPTIMIZE)
+ else
+@@ -106,7 +95,7 @@
+ 
+ # Clang -Werror warning suppressions
+ ifeq ($(C_COMPILER_FAMILY),clang)
+-	CC_CFLAGS+=-Wno-unused-value -Wno-parentheses-equality
++	CC_CFLAGS+=-Wno-unused-value -Wno-parentheses-equality -Wno-implicit-function-declaration -Wno-deprecated-declarations -Wno-deprecated-non-prototype -Wno-strict-prototypes -Wno-unused-but-set-variable -Wno-self-assign -Wno-enum-conversion -Wno-single-bit-bitfield-constant-conversion
+ endif
+ 
+ ifeq ($(GNU_LD),1)
+diff --recursive --unified --no-dereference --new-file a/asterisk-20.5.0/include/asterisk/compat.h b/asterisk-20.5.0/include/asterisk/compat.h
+--- a/asterisk-20.5.0/include/asterisk/compat.h	2023-10-18 19:10:25.000000000 +0200
++++ b/asterisk-20.5.0/include/asterisk/compat.h	2023-10-24 17:48:04.324486512 +0200
+@@ -124,7 +124,9 @@
+ void timersub(struct timeval *tvend, struct timeval *tvstart, struct timeval *tvdiff);
+ #endif
+ 
++#undef	strlcat
+ #define	strlcat	__use__ast_str__functions_not__strlcat__
++#undef	strlcpy
+ #define	strlcpy	__use__ast_copy_string__not__strlcpy__
+ 
+ #include <errno.h>
+diff --recursive --unified --no-dereference --new-file a/asterisk-20.5.0/include/asterisk/vector.h b/asterisk-20.5.0/include/asterisk/vector.h
+--- a/asterisk-20.5.0/include/asterisk/vector.h	2023-10-18 19:10:25.000000000 +0200
++++ b/asterisk-20.5.0/include/asterisk/vector.h	2023-10-24 17:48:04.325012927 +0200
+@@ -336,6 +336,8 @@
+  * of the vector itself.
+  */
+ #define AST_VECTOR_INSERT_AT(vec, idx, elem) ({ \
++	_Pragma("clang diagnostic push"); \
++	_Pragma("clang diagnostic ignored \"-Wtautological-compare\""); \
+ 	int res = 0; \
+ 	size_t __move; \
+ 	do { \
+@@ -350,6 +352,7 @@
+ 		(vec)->elems[(idx)] = (elem); \
+ 		(vec)->current = ((idx) > (vec)->current ? (idx) : (vec)->current) + 1; \
+ 	} while (0); \
++	_Pragma("clang diagnostic pop"); \
+ 	res; \
+ })
+ 
+diff --recursive --unified --no-dereference --new-file a/asterisk-20.5.0/main/Makefile b/asterisk-20.5.0/main/Makefile
+--- a/asterisk-20.5.0/main/Makefile	2023-10-18 19:10:25.000000000 +0200
++++ b/asterisk-20.5.0/main/Makefile	2023-10-24 17:47:28.442011983 +0200
+@@ -68,8 +68,7 @@
+ 
+ ifneq ($(findstring darwin,$(OSARCH)),)
+   AST_LIBS+=-lresolv
+-  ASTLINK=-mmacosx-version-min=10.6 -Wl,-undefined,dynamic_lookup -force_flat_namespace
+-  ASTLINK+=/usr/lib/bundle1.o
++  ASTLINK=-Wl,-undefined,dynamic_lookup -flat_namespace
+ else
+ # These are used for all but Darwin
+   ASTLINK+=-Wl,--export-dynamic
+diff --recursive --unified --no-dereference --new-file a/asterisk-20.5.0/pbx/pbx_lua.c b/asterisk-20.5.0/pbx/pbx_lua.c
+--- a/asterisk-20.5.0/pbx/pbx_lua.c	2023-10-18 19:10:25.000000000 +0200
++++ b/asterisk-20.5.0/pbx/pbx_lua.c	2023-10-24 22:31:07.943357386 +0200
+@@ -41,9 +41,15 @@
+ #include "asterisk/paths.h"
+ #include "asterisk/hashtab.h"
+ 
++#if defined(__APPLE__)
++#include <lua/lua.h>
++#include <lua/lauxlib.h>
++#include <lua/lualib.h>
++#else
+ #include <lua.h>
+ #include <lauxlib.h>
+ #include <lualib.h>
++#endif
+ 
+ static const char *config = "extensions.lua";
+ static const char *registrar = "pbx_lua";
+diff --recursive --unified --no-dereference --new-file a/asterisk-20.5.0/res/res_config_pgsql.c b/asterisk-20.5.0/res/res_config_pgsql.c
+--- a/asterisk-20.5.0/res/res_config_pgsql.c	2023-10-18 19:10:25.000000000 +0200
++++ b/asterisk-20.5.0/res/res_config_pgsql.c	2023-10-24 17:49:35.722779012 +0200
+@@ -301,7 +301,7 @@
+ 		tablename = ast_alloca(strlen(orig_tablename) * 2 + 1);
+ 		PQescapeStringConn(pgsqlConn, tablename, orig_tablename, strlen(orig_tablename), NULL);
+ 
+-		ast_str_set(&sql, 0, "SELECT a.attname, t.typname, a.attlen, a.attnotnull, d.adsrc, a.atttypmod FROM pg_class c, pg_type t, pg_attribute a LEFT OUTER JOIN pg_attrdef d ON a.atthasdef AND d.adrelid = a.attrelid AND d.adnum = a.attnum WHERE c.oid = a.attrelid AND a.atttypid = t.oid AND (a.attnum > 0) AND c.relname = '%s' ORDER BY c.relname, attnum", tablename);
++		ast_str_set(&sql, 0, "SELECT a.attname, t.typname, a.attlen, a.attnotnull, a.atttypmod FROM pg_class c, pg_type t, pg_attribute a LEFT OUTER JOIN pg_attrdef d ON a.atthasdef AND d.adrelid = a.attrelid AND d.adnum = a.attnum WHERE c.oid = a.attrelid AND a.atttypid = t.oid AND (a.attnum > 0) AND c.relname = '%s' ORDER BY c.relname, attnum", tablename);
+ 	}
+ 
+ 	ast_mutex_lock(&pgsql_lock);
+@@ -1509,8 +1509,8 @@
+ 		/* No socket needed */
+ 	} else if (!(s = ast_variable_retrieve(config, "general", "dbsock"))) {
+ 		ast_log(LOG_WARNING,
+-				"PostgreSQL RealTime: No database socket found, using '/tmp/.s.PGSQL.%d' as default.\n", dbport);
+-		strcpy(dbsock, "/tmp");
++				"PostgreSQL RealTime: No database socket found, using '/var/run/postgresql/.s.PGSQL.%d' as default.\n", dbport);
++		strcpy(dbsock, "/var/run/postgresql");
+ 	} else {
+ 		ast_copy_string(dbsock, s, sizeof(dbsock));
+ 	}
+diff --recursive --unified --no-dereference --new-file a/asterisk-20.5.0/res/res_pjsip/pjsip_distributor.c b/asterisk-20.5.0/res/res_pjsip/pjsip_distributor.c
+--- a/asterisk-20.5.0/res/res_pjsip/pjsip_distributor.c	2023-10-18 19:10:25.000000000 +0200
++++ b/asterisk-20.5.0/res/res_pjsip/pjsip_distributor.c	2023-10-24 17:50:09.171209017 +0200
+@@ -142,8 +142,6 @@
+ 
+ #ifdef HAVE_PJ_TRANSACTION_GRP_LOCK
+ 	pj_grp_lock_release(tsx->grp_lock);
+-#else
+-	pj_mutex_unlock(tsx->mutex);
+ #endif
+ 
+ 	return serializer;
+@@ -399,8 +397,6 @@
+ 
+ #ifdef HAVE_PJ_TRANSACTION_GRP_LOCK
+ 	pj_grp_lock_release(tsx->grp_lock);
+-#else
+-	pj_mutex_unlock(tsx->mutex);
+ #endif
+ 
+ 	return dlg;
+diff --recursive --unified --no-dereference --new-file a/asterisk-20.5.0/res/res_pjsip.c b/asterisk-20.5.0/res/res_pjsip.c
+--- a/asterisk-20.5.0/res/res_pjsip.c	2023-10-18 19:10:25.000000000 +0200
++++ b/asterisk-20.5.0/res/res_pjsip.c	2023-10-24 17:49:35.723294678 +0200
+@@ -1184,8 +1184,6 @@
+ 	}
+ 
+ 	return dlg;
+-#else
+-	return create_dialog_uas(endpoint, rdata, status, pjsip_dlg_create_uas);
+ #endif
+ }
+ 
+@@ -1194,20 +1192,6 @@
+ {
+ #ifdef HAVE_PJSIP_DLG_CREATE_UAS_AND_INC_LOCK
+ 	return create_dialog_uas(endpoint, rdata, status, pjsip_dlg_create_uas_and_inc_lock);
+-#else
+-	/*
+-	 * This is put here in order to be compatible with older versions of pjproject.
+-	 * Best we can do in this case is immediately lock after getting the dialog.
+-	 * However, that does leave a "gap" between creating and locking.
+-	 */
+-	pjsip_dialog *dlg;
+-
+-	dlg = create_dialog_uas(endpoint, rdata, status, pjsip_dlg_create_uas);
+-	if (dlg) {
+-		pjsip_dlg_inc_lock(dlg);
+-	}
+-
+-	return dlg;
+ #endif
+  }
+ 

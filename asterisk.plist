@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>asterisk</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/opt/sangoma/sbin/asterisk</string>
+		<string>-f</string>
+		<string>-q</string>
+	</array>
+	<key>RunAtLoad</key>
+	<false/>
+	<key>WorkingDirectory</key>
+	<string>/opt/sangoma</string>
+	<key>StandardErrorPath</key>
+	<string>/opt/sangoma/var/log/asterisk.err.log</string>
+	<key>StandardOutPath</key>
+	<string>/opt/sangoma/var/log/asterisk.out.log</string>
+	<key>HardResourceLimits</key>
+	<dict>
+		<key>NumberOfFiles</key>
+		<integer>16384</integer>
+	</dict>
+	<key>SoftResourceLimits</key>
+	<dict>
+		<key>NumberOfFiles</key>
+		<integer>16384</integer>
+	</dict>
+</dict>
+</plist>
