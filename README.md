@@ -34,7 +34,7 @@ patch -p2 --forward --directory=pjproject-2.13.1 <pjproject.patch
 ```bash
 cd pjproject-2.13.1
 
-export PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:/opt/sangoma/lib/pkgconfig"
+export PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig"
 export CFLAGS="-I/opt/homebrew/include -O2 -DNDEBUG"
 export LDFLAGS="-L/opt/homebrew/lib"
 
