@@ -4,6 +4,11 @@
 <dict>
 	<key>Label</key>
 	<string>asterisk</string>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>DYLD_FALLBACK_LIBRARY_PATH</key>
+		<string>/opt/sangoma/lib</string>
+	</dict>
 	<key>ProgramArguments</key>
 	<array>
 		<string>/opt/sangoma/sbin/asterisk</string>
